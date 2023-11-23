@@ -1,0 +1,52 @@
+object frmMain: TfrmMain
+  Left = 425
+  Height = 468
+  Top = 127
+  Width = 553
+  Caption = 'fpnetlog'
+  ClientHeight = 468
+  ClientWidth = 553
+  LCLVersion = '3.99.0.0'
+  OnCreate = FormCreate
+  object fbtnpanel: TPanel
+    AnchorSideTop.Side = asrBottom
+    Left = 0
+    Height = 25
+    Top = 0
+    Width = 555
+    Anchors = [akTop, akLeft, akRight]
+    AutoSize = True
+    BevelOuter = bvNone
+    ClientHeight = 25
+    ClientWidth = 555
+    TabOrder = 0
+    object EdtIpPort: TEdit
+      AnchorSideLeft.Control = BtnConnect
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideRight.Side = asrBottom
+      Left = 71
+      Height = 23
+      Top = 0
+      Width = 482
+      Anchors = [akTop, akLeft, akRight]
+      AutoSize = False
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+      Text = '192.168.0.1:3232'
+      TextHint = 'ip:port'
+    end
+    object BtnConnect: TButton
+      AnchorSideRight.Side = asrBottom
+      Left = 0
+      Height = 25
+      Top = 0
+      Width = 71
+      AutoSize = True
+      Caption = 'Connect'
+      TabOrder = 1
+      OnClick = BtnConnectClick
+    end
+  end
+end

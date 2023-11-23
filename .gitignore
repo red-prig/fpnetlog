@@ -1,0 +1,11 @@
+*.exe
+*.dll
+*.lps
+*.ppu
+*.bak
+*.o
+*.a
+*.txt
+link.res
+lib/
+backup/
