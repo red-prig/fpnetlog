@@ -6,6 +6,7 @@
 *.o
 *.a
 *.txt
+*.ini
 link.res
 lib/
 backup/

@@ -18,13 +18,15 @@ type
     fbtnpanel: TPanel;
     procedure BtnConnectClick(Sender: TObject);
     procedure BtnCloseClick(Sender: TObject);
+    procedure EdtIpPortKeyDown(Sender: TObject; var Key: Word;Shift: TShiftState);
     procedure SetBtnMode(mode:Boolean);
     procedure FormCreate(Sender: TObject);
-    procedure OnIdleUpdate(Sender:TObject;var Done:Boolean);
   private
 
   public
-
+    procedure ReadIniFile;
+    procedure WriteIniFile;
+    procedure OnIdleUpdate(Sender:TObject;var Done:Boolean);
   end;
 
 var
@@ -45,9 +47,14 @@ uses
  SynEditLineStream,
  LazSynEditText,
  SynEditMarkupBracket,
- sockets;
+ sockets,
+ IniFiles;
 
 var
+ FIniFile:TIniFile;
+
+ FLogFile:RawByteString='log.txt';
+
  FAddHandle:THandle;
  FGetHandle:THandle;
 
@@ -78,24 +85,43 @@ end;
 var
  mlog:TMySynLog;
 
-procedure TfrmMain.FormCreate(Sender: TObject);
+procedure TfrmMain.ReadIniFile;
 begin
+ FLogFile      :=Trim(FIniFile.ReadString('main','LogFile',Trim(FLogFile)));
+ EdtIpPort.Text:=Trim(FIniFile.ReadString('main','IpPort' ,Trim(EdtIpPort.Text)));
+end;
 
- FAddHandle:=CreateFile('log.txt',
-                        GENERIC_READ or GENERIC_WRITE,
-                        FILE_SHARE_READ,
-                        nil,
-                        OPEN_ALWAYS,
-                        0,
-                        0);
+procedure TfrmMain.WriteIniFile;
+begin
+ FIniFile.WriteString('main','LogFile',Trim(FLogFile));
+ FIniFile.WriteString('main','IpPort' ,Trim(EdtIpPort.Text));
+end;
 
- FGetHandle:=CreateFile('log.txt',
-                        GENERIC_READ,
-                        FILE_SHARE_READ or FILE_SHARE_WRITE,
-                        nil,
-                        OPEN_EXISTING,
-                        0,
-                        0);
+procedure TfrmMain.FormCreate(Sender: TObject);
+var
+ FLogFileW:WideString;
+begin
+ FIniFile:=TIniFile.Create('fpnetlog.ini');
+
+ ReadIniFile;
+
+ FLogFileW:=UTF8Decode(FLogFile);
+
+ FAddHandle:=CreateFileW(PWideChar(FLogFileW),
+                         GENERIC_READ or GENERIC_WRITE,
+                         FILE_SHARE_READ,
+                         nil,
+                         OPEN_ALWAYS,
+                         0,
+                         0);
+
+ FGetHandle:=CreateFileW(PWideChar(FLogFileW),
+                         GENERIC_READ,
+                         FILE_SHARE_READ or FILE_SHARE_WRITE,
+                         nil,
+                         OPEN_EXISTING,
+                         0,
+                         0);
 
  FileSeek(FAddHandle,0,fsFromEnd);
 
@@ -183,6 +209,8 @@ begin
   ShowMessage('Incorrect addres:'+EdtIpPort.Text);
  end;
 
+ WriteIniFile;
+
  mlog.TopLine:=-1;
 
  i:=mlog.LinesInWindow;
@@ -211,16 +239,27 @@ begin
  System.InterlockedExchange(FCancel,1);
 end;
 
+procedure TfrmMain.EdtIpPortKeyDown(Sender: TObject; var Key: Word;Shift: TShiftState);
+begin
+ if (Key=13) then
+ if (BtnConnect.OnClick=@BtnConnectClick) then
+ begin
+  BtnConnectClick(Sender);
+ end;
+end;
+
 procedure TfrmMain.SetBtnMode(mode:Boolean);
 begin
  case mode of
   True :
    begin
+    BtnConnect.AutoSize:=False;
     BtnConnect.Caption:='Connect';
     BtnConnect.OnClick:=@BtnConnectClick;
    end;
   False:
    begin
+    BtnConnect.AutoSize:=False;
     BtnConnect.Caption:='Close';
     BtnConnect.OnClick:=@BtnCloseClick;
    end;
@@ -268,8 +307,7 @@ end;
 
 function connect_thread(parameter:pointer):ptrint;
 label
- _error,
- _error_s;
+ _error;
 var
  addr:sockaddr_in;
  s,err:Integer;
@@ -295,7 +333,7 @@ begin
  if (err<>0) then
  begin
   LogWriteln('Set nonblocking Error:'+IntToStr(socketerror));
-  goto _error_s;
+  goto _error;
  end;
 
  tick:=GetTickCount64;
@@ -313,19 +351,19 @@ begin
    else
     begin
      LogWriteln('Connect Error:'+IntToStr(socketerror));
-     goto _error_s;
+     goto _error;
     end;
   end;
 
   if ((GetTickCount64-tick)>3000) then //3s
   begin
    LogWriteln('Connect timeout to '+NetAddrToStr(addr.sin_addr)+':'+IntToStr(ntohs(addr.sin_port)));
-   goto _error_s;
+   goto _error;
   end;
 
   if (FCancel<>0) then
   begin
-   goto _error_s;
+   goto _error;
   end;
 
   Sleep(100);
@@ -347,6 +385,7 @@ begin
     LogWriteln('fprecv Error:'+IntToStr(len)+':'+IntToStr(socketerror));
     Break;
    end;
+   Sleep(100);
   end else
   begin
    LogWrite(@buf,len);
@@ -357,14 +396,18 @@ begin
    Break;
   end;
 
-  Sleep(100);
  until false;
 
  LogWriteln('Connect closed '+NetAddrToStr(addr.sin_addr)+':'+IntToStr(ntohs(addr.sin_port)));
 
- _error_s:
-  CloseSocket(s);
  _error:
+
+  if (s<>-1) then
+  begin
+   fpshutdown(s,2);
+   CloseSocket(s);
+  end;
+
   FThStop:=1;
   WakeMainThread;
 end;

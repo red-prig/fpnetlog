@@ -1,7 +1,7 @@
 object frmMain: TfrmMain
-  Left = 425
+  Left = 478
   Height = 468
-  Top = 127
+  Top = 113
   Width = 553
   Caption = 'fpnetlog'
   ClientHeight = 468
@@ -36,6 +36,7 @@ object frmMain: TfrmMain
       TabOrder = 0
       Text = '192.168.0.1:3232'
       TextHint = 'ip:port'
+      OnKeyDown = EdtIpPortKeyDown
     end
     object BtnConnect: TButton
       AnchorSideRight.Side = asrBottom
