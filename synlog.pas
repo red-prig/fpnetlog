@@ -143,14 +143,14 @@ uses
   SynEditMarkupCtrlMouseLink, SynEditMarkupSpecialLine, SynEditMarkupSelection,
   SynEditMarkupSpecialChar,
   // Lines
-  SynEditTextBase, LazSynEditText, SynEditTextBuffer, SynEditLines,
+  LazSynEditText, SynEditTextBuffer, SynEditLines,
   SynEditTextTrimmer, SynEditTextTabExpander, SynEditTextDoubleWidthChars,
   SynEditFoldedView,
   // Gutter
   SynGutterBase, SynGutter,
   SynEditMiscClasses, SynEditHighlighter, LazSynTextArea, SynTextDrawer,
   SynEditTextBidiChars,
-  SynGutterCodeFolding, SynGutterChanges, SynGutterLineNumber, SynGutterMarks, SynGutterLineOverview,
+  SynGutterCodeFolding,
   //
   SynEdit;
 
@@ -4353,8 +4353,13 @@ begin
 end;
 
 procedure TCustomSynLog.DoOnResize;
+var
+ p:Integer;
 begin
+  p:=TopLine+LinesInWindow;
+
   inherited;
+
   if (not HandleAllocated) or ((ClientWidth = FOldWidth) and (ClientHeight = FOldHeight)) then exit;
   FOldWidth := ClientWidth;
   FOldHeight := ClientHeight;
@@ -4365,14 +4370,18 @@ begin
     FRightGutter.RecalcBounds;
     SizeOrFontChanged(FALSE);
     if sfEnsureCursorPosAtResize in fStateFlags then
+    begin
       EnsureCursorPosVisible;
+    end;
     Exclude(fStateFlags, sfEnsureCursorPosAtResize);
+
+    TopLine:=p-LinesInWindow;
+
   finally
     FScreenCaret.UnLock;
     dec(FScrollBarUpdateLock);
     UpdateScrollBars;
   end;
-  // SetLeftChar(LeftChar);                                                     //mh 2000-10-19
 end;
 
 procedure TCustomSynLog.CalculatePreferredSize(var PreferredWidth,
